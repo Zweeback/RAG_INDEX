@@ -1,0 +1,234 @@
+# 🏗️ BEN'S AI ECOSYSTEM - ARCHITEKTUR
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         🌐 CLIENT LAYER                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │ iPhone   │  │ Desktop  │  │ Slack    │  │ GitHub   │           │
+│  │ ChatGPT  │  │ Browser  │  │ Bot      │  │ Webhook  │           │
+│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘           │
+└────────┼─────────────┼─────────────┼─────────────┼─────────────────┘
+         │             │             │             │
+         │             │             │             │
+┌────────▼─────────────▼─────────────▼─────────────▼─────────────────┐
+│                    🎯 API GATEWAY LAYER                              │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │           ChatGPT Custom GPT (with Actions)                  │  │
+│  │  - Primäres Interface                                        │  │
+│  │  - Nutzt OpenAPI Schema                                      │  │
+│  │  - Ruft deinen RAG Server ab                                │  │
+│  └────────────────────────┬─────────────────────────────────────┘  │
+└───────────────────────────┼────────────────────────────────────────┘
+                            │
+                            │
+┌───────────────────────────▼────────────────────────────────────────┐
+│                    🖥️ SERVER LAYER                                  │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │              MSI PC / Google Colab Server                    │  │
+│  │                                                              │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  Flask API (chatgpt_rag_server.py)                  │   │  │
+│  │  │  - /search    → RAG Query                           │   │  │
+│  │  │  - /add       → Add to RAG                          │   │  │
+│  │  │  - /stats     → Get Stats                           │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  │                                                              │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  Master Framework (ben_master_framework.py)         │   │  │
+│  │  │                                                      │   │  │
+│  │  │  ├─ RAGModule                                       │   │  │
+│  │  │  ├─ MultiLLM Router                                 │   │  │
+│  │  │  ├─ Alice AI                                        │   │  │
+│  │  │  ├─ DataIngestor                                    │   │  │
+│  │  │  └─ Pipeline Manager                                │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+└───────────────────────────┬────────────────────────────────────────┘
+                            │
+                            │
+┌───────────────────────────▼────────────────────────────────────────┐
+│                    💾 DATA LAYER                                     │
+│                                                                      │
+│  ┌────────────────────┐         ┌────────────────────┐            │
+│  │   ChromaDB RAG     │         │   Google Drive     │            │
+│  │                    │         │                    │            │
+│  │  • 2927 Convs      │◄────────┤  /ben_framework/   │            │
+│  │  • Embeddings      │         │                    │            │
+│  │  • Fast Search     │         │  ├─ chroma_db/     │            │
+│  └────────────────────┘         │  ├─ data/          │            │
+│                                  │  ├─ outputs/       │            │
+│  ┌────────────────────┐         │  ├─ pipelines/     │            │
+│  │  Local Storage     │         │  ├─ configs/       │            │
+│  │  (MSI PC)          │◄────────┤  └─ agents/        │            │
+│  └────────────────────┘         └────────────────────┘            │
+└──────────────────────────────────────────────────────────────────────┘
+                            │
+                            │
+┌───────────────────────────▼────────────────────────────────────────┐
+│                    🤖 LLM LAYER                                      │
+│                                                                      │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐          │
+│  │ ChatGPT  │  │  Grok    │  │ DeepSeek │  │ Claude   │          │
+│  │  GPT-4   │  │ SuperGrok│  │          │  │ Sonnet 4 │          │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘          │
+│                                                                      │
+│  ┌──────────┐  ┌──────────┐                                        │
+│  │Perplexity│  │ Gemini   │     ← Alle nutzen DEIN RAG!          │
+│  └──────────┘  └──────────┘                                        │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                        📊 DATA FLOW BEISPIEL
+═══════════════════════════════════════════════════════════════════════
+
+QUERY VON iPHONE:
+┌────────────────────────────────────────────────────────────────────┐
+│ 1. Ben öffnet ChatGPT App auf iPhone                               │
+│    "Was waren die Hauptprobleme mit Sandra?"                       │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 2. ChatGPT Custom GPT erkennt → Braucht RAG Daten                │
+│    Ruft Action: searchRAG(query="Sandra Probleme", n=5)           │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 3. API Request zu deinem Server (MSI PC / ngrok)                  │
+│    POST http://deine-url.ngrok.io/search                          │
+│    Body: {"query": "Sandra Probleme", "n_results": 5}             │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 4. Flask Server auf MSI PC                                        │
+│    → RAGModule.search()                                           │
+│    → ChromaDB query mit Embeddings                                │
+│    → Findet relevante Conversations                               │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 5. ChromaDB durchsucht 2927 Conversations                         │
+│    → Semantic Search mit Embeddings                               │
+│    → Top 5 relevanteste Conversations                             │
+│    → Score: Forensische Beziehungsanalyse (89.3%)                 │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 6. API Response zurück zu ChatGPT                                 │
+│    JSON: {results: [...], total_found: 5}                         │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 7. ChatGPT GPT-4 analysiert RAG Daten                            │
+│    + Original Query                                                │
+│    → Generiert intelligente Antwort                               │
+└────────────┬───────────────────────────────────────────────────────┘
+             │
+             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│ 8. Antwort zurück zu iPhone                                       │
+│    "Basierend auf deinen Conversations zeigen sich folgende       │
+│     Hauptprobleme: ..."                                           │
+└────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                    🔄 DATEN HINZUFÜGEN FLOW
+═══════════════════════════════════════════════════════════════════════
+
+METHODE 1: Via iPhone ChatGPT
+┌───────────────────────────────────────────────────────────────────┐
+│ Ben (iPhone): "Add to RAG: Meeting Notes - Besprochen: ..."      │
+│            ↓                                                      │
+│ ChatGPT Custom GPT: addToRAG action                              │
+│            ↓                                                      │
+│ MSI Server: POST /add                                            │
+│            ↓                                                      │
+│ ChromaDB: Neuer Entry + Embeddings                               │
+│            ↓                                                      │
+│ Confirmation: "✅ Added to RAG!"                                  │
+└───────────────────────────────────────────────────────────────────┘
+
+METHODE 2: Via Google Drive Drop
+┌───────────────────────────────────────────────────────────────────┐
+│ Ben droppt file.txt in /data/incoming/                           │
+│            ↓                                                      │
+│ Framework: DataIngestor.process_incoming()                       │
+│            ↓                                                      │
+│ RAGModule.add_from_file()                                        │
+│            ↓                                                      │
+│ ChromaDB: Neuer Entry                                            │
+│            ↓                                                      │
+│ File moved to /data/archive/                                     │
+└───────────────────────────────────────────────────────────────────┘
+
+METHODE 3: Via Slack
+┌───────────────────────────────────────────────────────────────────┐
+│ Slack: /rag add "Content here..."                                │
+│            ↓                                                      │
+│ Slack Webhook → Flask Server                                     │
+│            ↓                                                      │
+│ Framework processes                                               │
+│            ↓                                                      │
+│ Added to RAG                                                      │
+└───────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                    👩 ALICE COMPANION FLOW
+═══════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────┐
+│ Ben: "Hey Alice, erinnere mich an Sandra Gespräch"               │
+│         ↓                                                         │
+│ Alice Module initiiert:                                           │
+│   1. RAG Search("Sandra Gespräch", n=3)                          │
+│   2. Hole relevante Conversations                                │
+│   3. Baue Prompt mit Context                                     │
+│   4. Query MultiLLM (GPT-4 oder Claude)                          │
+│   5. Alice Memory Update                                         │
+│   6. Response mit Personality                                    │
+│         ↓                                                         │
+│ Alice: "Natürlich Ben! In eurem Gespräch vom August ging es     │
+│        hauptsächlich um..."                                       │
+└───────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                    🎬 PIPELINE BEISPIEL: Video
+═══════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────┐
+│ Ben uploaded video.mp4 to /pipelines/video/                      │
+│         ↓                                                         │
+│ Framework erkennt neues Video                                     │
+│         ↓                                                         │
+│ Pipeline Steps:                                                   │
+│   1. Whisper: Transcribe Audio → Text                           │
+│   2. GPT-4: Summarize Video                                      │
+│   3. RAG: Add transcript + summary                               │
+│   4. Output: Save results to /outputs/media/                     │
+│         ↓                                                         │
+│ Ben kann jetzt Videos via RAG suchen!                            │
+└───────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════
+                    🎯 KEY BENEFITS
+═══════════════════════════════════════════════════════════════════════
+
+✅ iPhone Native: ChatGPT App → Custom GPT → Dein RAG
+✅ Multi-LLM: GPT, Grok, Claude, alle nutzen DEINE Daten
+✅ Erweiterbar: Neue Module einfach hinzufügen
+✅ Automatisch: Drop Files → Framework verarbeitet
+✅ Alice: Persönlicher AI Companion mit Memory
+✅ Google Drive: Alles zentral gespeichert
+✅ Secure: Deine Daten bleiben privat (MSI PC oder Drive)
+
+═══════════════════════════════════════════════════════════════════════

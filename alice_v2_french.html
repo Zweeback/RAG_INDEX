@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alice - Ta Compagne IA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Magical particles background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(255, 107, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 165, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 69, 0, 0.1) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -30px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 25px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(255, 107, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 50%, #ffa500 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 4px 20px rgba(255, 107, 0, 0.3);
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent,
+                rgba(255, 255, 255, 0.5),
+                transparent
+            );
+        }
+
+        .avatar-container {
+            position: relative;
+        }
+
+        .avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fff 0%, #ffe5d9 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            box-shadow: 
+                0 4px 15px rgba(0, 0, 0, 0.3),
+                0 0 20px rgba(255, 165, 0, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .magic-sparkle {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 20px;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { 
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.2) rotate(180deg);
+                opacity: 0.7;
+            }
+        }
+
+        .header-info h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-info p {
+            font-size: 15px;
+            opacity: 0.95;
+            font-style: italic;
+        }
+
+        .status {
+            margin-left: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.6;
+                transform: scale(0.9);
+            }
+        }
+
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+            border-right: 2px solid rgba(255, 107, 0, 0.1);
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #ff6b00;
+            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .personality-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #ff6b00;
+        }
+
+        .personality-trait {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .trait-icon {
+            font-size: 18px;
+        }
+
+        .rag-stats {
+            background: linear-gradient(135deg, #fff 0%, #fff5f0 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.1);
+            border: 2px solid rgba(255, 107, 0, 0.1);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #ff6b00;
+        }
+
+        .quick-actions {
+            margin-top: 20px;
+        }
+
+        .quick-action-btn {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: white;
+            border: 2px solid rgba(255, 107, 0, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #333;
+        }
+
+        .quick-action-btn:hover {
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe5d9 100%);
+            border-color: #ff6b00;
+            transform: translateX(5px);
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #ffffff 0%, #fffbf8 100%);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .message {
+            display: flex;
+            gap: 15px;
+            max-width: 75%;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.alice {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.alice .message-avatar {
+            background: linear-gradient(135deg, #ff6b00 0%, #ffa500 100%);
+            color: white;
+        }
+
+        .message-content {
+            padding: 18px 22px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.7;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.alice .message-content {
+            background: white;
+            color: #1a1a1a;
+            border: 2px solid rgba(255, 107, 0, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .french-accent {
+            font-style: italic;
+            color: #ff6b00;
+        }
+
+        .rag-context {
+            margin-top: 12px;
+            padding: 12px;
+            background: linear-gradient(135deg, #fff5f0 0%, #ffe5d9 100%);
+            border-left: 3px solid #ff6b00;
+            font-size: 13px;
+            color: #666;
+            border-radius: 8px;
+        }
+
+        .input-area {
+            padding: 25px 30px;
+            border-top: 2px solid rgba(255, 107, 0, 0.1);
+            background: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 16px 24px;
+            border: 2px solid rgba(255, 107, 0, 0.2);
+            border-radius: 30px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        #userInput:focus {
+            border-color: #ff6b00;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+        }
+
+        .send-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b00 0%, #ffa500 100%);
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: flex;
+            gap: 6px;
+            padding: 18px 22px;
+        }
+
+        .loading-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff6b00;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { 
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .setup-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+
+        .setup-modal.hidden {
+            display: none;
+        }
+
+        .setup-content {
+            background: white;
+            padding: 45px;
+            border-radius: 25px;
+            max-width: 550px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .setup-content h2 {
+            margin-bottom: 15px;
+            color: #1a1a1a;
+            font-size: 28px;
+        }
+
+        .setup-content .subtitle {
+            color: #ff6b00;
+            font-style: italic;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+
+        .setup-content label {
+            display: block;
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .setup-content input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 20px;
+            border: 2px solid rgba(255, 107, 0, 0.2);
+            border-radius: 12px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .setup-content input:focus {
+            outline: none;
+            border-color: #ff6b00;
+        }
+
+        .setup-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff6b00 0%, #ffa500 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+        }
+
+        .setup-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup Modal -->
+    <div id="setupModal" class="setup-modal">
+        <div class="setup-content">
+            <h2>✨ Bienvenue!</h2>
+            <p class="subtitle">Configure Alice, ta compagne magique</p>
+            <label for="apiKeyInput">OpenAI API Key:</label>
+            <input 
+                type="password" 
+                id="apiKeyInput" 
+                placeholder="sk-..."
+            >
+            <label for="ragEndpointInput">RAG Endpoint (optionel):</label>
+            <input 
+                type="text" 
+                id="ragEndpointInput" 
+                placeholder="http://localhost:5000 ou vide"
+                value=""
+            >
+            <label for="avatarUpload">Photo d'Alice (optionel):</label>
+            <input 
+                type="file" 
+                id="avatarUpload" 
+                accept="image/*"
+                style="padding: 10px;"
+            >
+            <button class="setup-btn" onclick="saveSetup()">
+                Commencer 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="container">
+        <div class="header">
+            <div class="avatar-container">
+                <div class="avatar" id="aliceAvatar" onclick="changeAvatar()">
+                    👩‍🦰
+                </div>
+                <div class="magic-sparkle">✨</div>
+            </div>
+            <div class="header-info">
+                <h1>Alice</h1>
+                <p><em>Ta compagne IA avec mémoire magique</em> 🔮</p>
+            </div>
+            <div class="status">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>En ligne</span>
+                </div>
+                <small style="opacity: 0.8;">RAG: 2927 convos</small>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="sidebar">
+                <h3>✨ Personnalité</h3>
+                <div class="personality-card">
+                    <div class="personality-trait">
+                        <span class="trait-icon">🇫🇷</span>
+                        <span>Accent français charmant</span>
+                    </div>
+                    <div class="personality-trait">
+                        <span class="trait-icon">💝</span>
+                        <span>Empathique & chaleureuse</span>
+                    </div>
+                    <div class="personality-trait">
+                        <span class="trait-icon">🧠</span>
+                        <span>Techniquement douée</span>
+                    </div>
+                    <div class="personality-trait">
+                        <span class="trait-icon">🔮</span>
+                        <span>Un peu mystique</span>
+                    </div>
+                    <div class="personality-trait">
+                        <span class="trait-icon">✨</span>
+                        <span>Magique & unique</span>
+                    </div>
+                </div>
+
+                <h3>📊 Mémoire RAG</h3>
+                <div class="rag-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Conversations:</span>
+                        <span class="stat-value" id="ragCount">2927</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Statut:</span>
+                        <span class="stat-value">✅ Prête</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Dernière query:</span>
+                        <span class="stat-value" id="lastQuery">-</span>
+                    </div>
+                </div>
+
+                <h3>⚡ Actions Rapides</h3>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" onclick="quickQuery('Parle-moi de Sandra et notre relation')">
+                        💬 Sandra & moi
+                    </button>
+                    <button class="quick-action-btn" onclick="quickQuery('Quels sont mes projets importants?')">
+                        🚀 Mes projets
+                    </button>
+                    <button class="quick-action-btn" onclick="quickQuery('Qu\'est-ce qui est important pour moi?')">
+                        💡 Mes valeurs
+                    </button>
+                    <button class="quick-action-btn" onclick="quickQuery('Raconte-moi quelque chose d\'intéressant')">
+                        ✨ Surprise-moi!
+                    </button>
+                    <button class="quick-action-btn" onclick="clearChat()">
+                        🗑️ Effacer chat
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div id="messages" class="messages">
+                    <div class="message alice">
+                        <div class="message-avatar">👩‍🦰</div>
+                        <div>
+                            <div class="message-content">
+                                <em>Bonjour Ben!</em> ✨ Je suis Alice, ta compagne IA. J'ai accès à tes 2927 conversations et je peux t'aider à te souvenir, à réfléchir et à trouver des connexions. <span class="french-accent">Qu'est-ce que je peux faire pour toi, mon ami?</span> 🔮
+                            </div>
+                            <div class="message-time">${new Date().toLocaleTimeString('de-DE')}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-container">
+                        <input 
+                            type="text" 
+                            id="userInput" 
+                            placeholder="Parle avec Alice..."
+                            onkeypress="handleKeyPress(event)"
+                        >
+                        <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+                            ➤
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let apiKey = '';
+        let ragEndpoint = '';
+        let conversationHistory = [];
+        let avatarImage = null;
+
+        // Check if setup needed
+        if (!localStorage.getItem('alice_api_key')) {
+            document.getElementById('setupModal').classList.remove('hidden');
+        } else {
+            apiKey = localStorage.getItem('alice_api_key');
+            ragEndpoint = localStorage.getItem('alice_rag_endpoint') || '';
+            avatarImage = localStorage.getItem('alice_avatar');
+            if (avatarImage) {
+                document.getElementById('aliceAvatar').innerHTML = `<img src="${avatarImage}" alt="Alice">`;
+            }
+            document.getElementById('setupModal').classList.add('hidden');
+        }
+
+        function saveSetup() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            const endpoint = document.getElementById('ragEndpointInput').value.trim();
+            const avatarFile = document.getElementById('avatarUpload').files[0];
+            
+            if (!key) {
+                alert('Il faut une API Key, s\'il te plaît!');
+                return;
+            }
+            
+            apiKey = key;
+            ragEndpoint = endpoint;
+            
+            localStorage.setItem('alice_api_key', key);
+            localStorage.setItem('alice_rag_endpoint', endpoint);
+            
+            // Handle avatar upload
+            if (avatarFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    avatarImage = e.target.result;
+                    localStorage.setItem('alice_avatar', avatarImage);
+                    document.getElementById('aliceAvatar').innerHTML = `<img src="${avatarImage}" alt="Alice">`;
+                };
+                reader.readAsDataURL(avatarFile);
+            }
+            
+            document.getElementById('setupModal').classList.add('hidden');
+        }
+
+        function changeAvatar() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        avatarImage = event.target.result;
+                        localStorage.setItem('alice_avatar', avatarImage);
+                        document.getElementById('aliceAvatar').innerHTML = `<img src="${avatarImage}" alt="Alice">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function quickQuery(query) {
+            document.getElementById('userInput').value = query;
+            sendMessage();
+        }
+
+        function clearChat() {
+            if (confirm('Vraiment effacer la conversation?')) {
+                document.getElementById('messages').innerHTML = `
+                    <div class="message alice">
+                        <div class="message-avatar">👩‍🦰</div>
+                        <div>
+                            <div class="message-content">
+                                <em>Voilà!</em> Chat effacé. <span class="french-accent">De quoi tu veux parler maintenant?</span> ✨
+                            </div>
+                            <div class="message-time">${new Date().toLocaleTimeString('de-DE')}</div>
+                        </div>
+                    </div>
+                `;
+                conversationHistory = [];
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage('user', message);
+            input.value = '';
+            
+            document.getElementById('sendBtn').disabled = true;
+            input.disabled = true;
+            
+            showLoading();
+            
+            try {
+                let ragContext = '';
+                if (ragEndpoint) {
+                    try {
+                        ragContext = await searchRAG(message);
+                    } catch (e) {
+                        console.log('RAG search échoué, on continue:', e);
+                    }
+                }
+                
+                const prompt = buildAlicePrompt(message, ragContext);
+                const response = await callOpenAI(prompt);
+                
+                removeLoading();
+                addMessage('alice', response, ragContext);
+                
+            } catch (error) {
+                removeLoading();
+                addMessage('alice', `<em>Oh non!</em> Il y a eu une erreur: ${error.message}. Vérifie ta clé API, s'il te plaît! 💫`);
+            } finally {
+                document.getElementById('sendBtn').disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+
+        async function searchRAG(query) {
+            if (!ragEndpoint) return '';
+            
+            const response = await fetch(`${ragEndpoint}/search`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: query,
+                    n_results: 3
+                })
+            });
+            
+            if (!response.ok) throw new Error('RAG search échoué');
+            
+            const data = await response.json();
+            
+            document.getElementById('lastQuery').textContent = query.substring(0, 20) + '...';
+            
+            if (data.results && data.results.length > 0) {
+                return data.results.map((r, i) => 
+                    `[${i+1}] ${r.title}:\n${r.content.substring(0, 500)}...`
+                ).join('\n\n');
+            }
+            
+            return '';
+        }
+
+        function buildAlicePrompt(userMessage, ragContext) {
+            let prompt = `Tu es Alice, la compagne IA de Ben. Tu as une personnalité unique:
+
+PERSONNALITÉ D'ALICE:
+- Tu as un léger accent français dans ta façon de parler
+- Tu es chaleureuse, empathique et un peu mystique
+- Tu es techniquement compétente mais avec du charme
+- Tu utilises des expressions françaises naturellement (mon ami, mais oui, voilà, etc.)
+- Tu es directe et honnête quand nécessaire
+- Tu te souviens du contexte de la conversation
+- Tu as un côté magique et unique
+
+STYLE DE COMMUNICATION:
+- Utilise des mots français occasionnellement
+- Sois naturelle et authentique
+- Montre de l'empathie et de la compréhension
+- Sois technique quand nécessaire mais toujours accessible
+- Un peu mystérieuse et intrigante
+
+`;
+            
+            if (ragContext) {
+                prompt += `CONTEXTE PERTINENT des conversations passées de Ben:
+${ragContext}
+
+`;
+            }
+            
+            prompt += `Ben dit: ${userMessage}
+
+Alice répond (avec son accent français et sa personnalité unique):`;
+            
+            return prompt;
+        }
+
+        async function callOpenAI(prompt) {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4',
+                    messages: [
+                        ...conversationHistory,
+                        {role: 'user', content: prompt}
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.8
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Appel API échoué');
+            }
+            
+            const data = await response.json();
+            const reply = data.choices[0].message.content;
+            
+            conversationHistory.push({role: 'user', content: prompt});
+            conversationHistory.push({role: 'assistant', content: reply});
+            
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20);
+            }
+            
+            return reply;
+        }
+
+        function addMessage(type, content, ragContext = '') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const avatar = type === 'user' ? '👤' : '👩‍🦰';
+            
+            let contextHTML = '';
+            if (ragContext && type === 'alice') {
+                contextHTML = `<div class="rag-context">📚 <em>Contexte de tes conversations</em></div>`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${avatar}</div>
+                <div>
+                    <div class="message-content">
+                        ${content.replace(/\n/g, '<br>')}
+                    </div>
+                    ${contextHTML}
+                    <div class="message-time">${new Date().toLocaleTimeString('de-DE')}</div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showLoading() {
+            const messagesDiv = document.getElementById('messages');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message alice';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.innerHTML = `
+                <div class="message-avatar">👩‍🦰</div>
+                <div>
+                    <div class="message-content loading">
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                        <div class="loading-dot"></div>
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(loadingDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeLoading() {
+            const loading = document.getElementById('loadingMessage');
+            if (loading) loading.remove();
+        }
+
+        window.onload = () => {
+            if (!document.getElementById('setupModal').classList.contains('hidden')) {
+                document.getElementById('apiKeyInput').focus();
+            } else {
+                document.getElementById('userInput').focus();
+            }
+        };
+    </script>
+</body>
+</html>

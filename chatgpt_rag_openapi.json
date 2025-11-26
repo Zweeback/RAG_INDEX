@@ -1,0 +1,115 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Ben's Personal RAG API",
+    "description": "Zugriff auf 2927 persönliche ChatGPT Conversations",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://YOUR_MSI_PC_IP:5000",
+      "description": "MSI Home Server"
+    }
+  ],
+  "paths": {
+    "/search": {
+      "post": {
+        "summary": "Durchsuche RAG Conversations",
+        "operationId": "searchRAG",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Suchbegriff für RAG"
+                  },
+                  "n_results": {
+                    "type": "integer",
+                    "description": "Anzahl Ergebnisse (default: 5)",
+                    "default": 5
+                  }
+                },
+                "required": ["query"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suchergebnisse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "query": {"type": "string"},
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {"type": "string"},
+                          "relevance": {"type": "string"},
+                          "messages": {"type": "integer"},
+                          "content": {"type": "string"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/add": {
+      "post": {
+        "summary": "Füge neue Conversation zum RAG hinzu",
+        "operationId": "addToRAG",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Titel der Conversation"
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Inhalt der Conversation"
+                  }
+                },
+                "required": ["title", "content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Erfolgreich hinzugefügt"
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "RAG Statistiken",
+        "operationId": "getStats",
+        "responses": {
+          "200": {
+            "description": "Statistiken"
+          }
+        }
+      }
+    }
+  }
+}
