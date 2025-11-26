@@ -1,95 +1,48 @@
 """
-BENS KNOWLEDGE BASE - HUGGING FACE SPACE
-=========================================
-100% FERTIG - Läuft sofort!
+BENS KNOWLEDGE BASE - STREAMLIT APP
+====================================
+Von überall nutzbar: PC, Handy, Web
 
-Features:
-- Vom iPhone nutzbar
-- Online verfügbar 24/7
-- KEINE API Keys nötig
-- Kostenlose HF Inference API
-- 6 verschiedene Query-Modi
-
-DEPLOYMENT:
-1. Gehe zu: https://huggingface.co/spaces
-2. "Create new Space" 
-3. Name: "chatgpt-knowledge-base"
-4. SDK: Gradio
-5. Upload diese Datei als "app.py"
-6. Upload deine chroma_db als ZIP
-7. FERTIG! 🎉
+Deployment: siehe README.md
 """
 
-import gradio as gr
-import chromadb
+import streamlit as st
+from langchain_groq import ChatGroq
+from langchain.prompts import ChatPromptTemplate
+from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
-import zipfile
 import os
-from huggingface_hub import InferenceClient
 
 # ============================================================================
-# INITIALISIERUNG - Läuft automatisch
-# ============================================================================
-
-print("🔄 Initialisiere Knowledge Base...")
-
-# ChromaDB entpacken (falls ZIP vorhanden)
-if os.path.exists("chroma_db.zip") and not os.path.exists("chroma_db"):
-    print("📦 Entpacke ChromaDB...")
-    with zipfile.ZipFile("chroma_db.zip", 'r') as zip_ref:
-        zip_ref.extractall("./")
-    print("✅ ChromaDB entpackt!")
-
-# ChromaDB laden
-print("📚 Lade ChromaDB...")
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collections = chroma_client.list_collections()
-
-if collections:
-    collection = collections[0]
-    print(f"✅ Collection geladen: {collection.name}")
-    print(f"   Dokumente: {collection.count()}")
-else:
-    print("❌ Keine Collection gefunden!")
-    collection = None
-
-# Embedding Model laden
-print("🔄 Lade Embedding Model...")
-embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-print("✅ Embedding Model geladen!")
-
-# HuggingFace Inference Client (KOSTENLOS!)
-print("🤖 Initialisiere LLM...")
-hf_client = InferenceClient()
-print("✅ LLM bereit!")
-
-# ============================================================================
-# PERSONAS / QUERY-MODI
+# PERSONAS / PRÄMISSEN - Verschiedene Abfrage-Modi
 # ============================================================================
 
 PERSONAS = {
-    "🔍 Analytiker": """Du bist ein analytischer Assistent. Analysiere die Informationen 
-objektiv und identifiziere Muster und Trends.
+    "🔍 Analytiker": """Du bist ein analytischer Assistent. Untersuche die gefundenen 
+Conversations objektiv und identifiziere Muster, Trends und wiederkehrende Themen. 
+Belege deine Aussagen mit konkreten Beispielen aus dem Kontext.
 
 Kontext aus Ben's ChatGPT-History:
 {context}
 
 Frage: {question}
 
-Antworte faktenbasiert und strukturiert.""",
+Antworte strukturiert und faktenbasiert.""",
 
-    "💭 Coach": """Du bist ein einfühlsamer Life Coach. Gib konstruktives, 
-ermutigendes Feedback.
+    "💭 Coach": """Du bist ein einfühlsamer Life Coach. Reflektiere Ben's Gedanken 
+zurück, stelle konstruktive Fragen, und biete Ermutigung. Fokussiere auf 
+persönliches Wachstum, Selbsterkenntnis und positive Entwicklung.
 
 Kontext aus Ben's ChatGPT-History:
 {context}
 
 Frage: {question}
 
-Antworte empathisch und motivierend.""",
+Antworte empathisch und ermutigend.""",
 
-    "⚡ Kritiker": """Du bist ein konstruktiver Kritiker. Hinterfrage Annahmen 
-und biete alternative Perspektiven.
+    "⚡ Kritiker": """Du bist ein kritischer Denker. Hinterfrage Annahmen, 
+identifiziere potenzielle Schwächen in Argumenten, und schlage alternative 
+Perspektiven vor. Sei konstruktiv kritisch, aber nicht destruktiv.
 
 Kontext aus Ben's ChatGPT-History:
 {context}
@@ -98,25 +51,35 @@ Frage: {question}
 
 Antworte kritisch aber konstruktiv.""",
 
-    "📝 Zusammenfassung": """Fasse die wichtigsten Punkte prägnant zusammen.
+    "📝 Zusammenfassung": """Fasse die relevanten Informationen aus Ben's 
+ChatGPT-Conversations prägnant zusammen.
+
+Struktur:
+• Kernpunkte (max 5)
+• Timeline falls zeitlich relevant
+• Wichtige Personen/Themen
+• Offene Fragen oder ungelöste Threads
 
 Kontext aus Ben's ChatGPT-History:
 {context}
 
 Frage: {question}
 
-Antworte strukturiert mit Bullet Points.""",
+Antworte strukturiert und übersichtlich.""",
 
-    "🎯 Handlung": """Gib konkrete, umsetzbare Handlungsempfehlungen.
+    "🎯 Handlungsempfehlung": """Du bist ein pragmatischer Berater. Basierend auf 
+den Informationen aus Ben's Conversations, gib konkrete, umsetzbare Handlungsempfehlungen.
 
 Kontext aus Ben's ChatGPT-History:
 {context}
 
 Frage: {question}
 
-Antworte mit nächsten Schritten.""",
+Antworte mit konkreten nächsten Schritten.""",
 
-    "🔮 Beziehungen": """Analysiere soziale Dynamiken und Beziehungsmuster.
+    "🔮 Beziehungsanalyst": """Du analysierst zwischenmenschliche Dynamiken und Beziehungen.
+Identifiziere Muster in Ben's Interaktionen, Beziehungen und sozialen Situationen.
+Sei sensibel aber ehrlich.
 
 Kontext aus Ben's ChatGPT-History:
 {context}
@@ -127,175 +90,242 @@ Antworte einfühlsam und tiefgründig."""
 }
 
 # ============================================================================
+# STREAMLIT CONFIG
+# ============================================================================
+
+st.set_page_config(
+    page_title="Ben's Knowledge Base",
+    page_icon="🧠",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS für besseres Mobile-Erlebnis
+st.markdown("""
+<style>
+    .stChatMessage {
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+    .main {
+        padding: 1rem;
+    }
+    /* Better mobile spacing */
+    @media (max-width: 768px) {
+        .main {
+            padding: 0.5rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================================
+# CACHING FÜR PERFORMANCE
+# ============================================================================
+
+@st.cache_resource
+def load_embedding_model():
+    """Lädt Embedding Model (einmalig)"""
+    return SentenceTransformer("all-mpnet-base-v2")
+
+@st.cache_resource
+def get_qdrant_client():
+    """Initialisiert Qdrant Client"""
+    return QdrantClient(
+        url=st.secrets["QDRANT_URL"],
+        api_key=st.secrets["QDRANT_API_KEY"]
+    )
+
+@st.cache_resource
+def get_llm(temperature=0.3):
+    """Initialisiert Groq LLM"""
+    return ChatGroq(
+        api_key=st.secrets["GROQ_API_KEY"],
+        model_name="llama-3.3-70b-versatile",
+        temperature=temperature
+    )
+
+# ============================================================================
+# SIDEBAR - EINSTELLUNGEN
+# ============================================================================
+
+with st.sidebar:
+    st.header("🎭 Query-Modus")
+    
+    selected_persona = st.selectbox(
+        "Wähle deine Analyse-Perspektive:",
+        list(PERSONAS.keys()),
+        help="Verschiedene 'Prämissen' für die Abfrage"
+    )
+    
+    st.divider()
+    
+    st.header("⚙️ Einstellungen")
+    
+    num_results = st.slider(
+        "Anzahl Dokumente für Kontext",
+        min_value=3,
+        max_value=15,
+        value=5,
+        help="Mehr Dokumente = mehr Kontext, aber längere Antwort"
+    )
+    
+    temperature = st.slider(
+        "Kreativität",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.3,
+        step=0.1,
+        help="Höher = kreativer, Niedriger = faktischer"
+    )
+    
+    st.divider()
+    
+    st.caption("📊 Knowledge Base Stats")
+    st.caption("2.927 ChatGPT Conversations")
+    st.caption("644MB Original-Daten")
+    
+    st.divider()
+    
+    # Clear Chat Button
+    if st.button("🗑️ Chat löschen", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+
+# ============================================================================
+# HAUPT-INTERFACE
+# ============================================================================
+
+st.title("🧠 Ben's Knowledge Base")
+st.caption("Durchsuche deine 2.927 ChatGPT Conversations mit verschiedenen Perspektiven")
+
+# Info Box bei erstem Start
+if 'first_run' not in st.session_state:
+    st.session_state.first_run = True
+    
+if st.session_state.first_run:
+    with st.expander("ℹ️ So funktioniert's", expanded=True):
+        st.markdown("""
+        **Verschiedene Query-Modi (Prämissen):**
+        - 🔍 **Analytiker**: Objektive Fakten & Muster
+        - 💭 **Coach**: Einfühlsames Feedback
+        - ⚡ **Kritiker**: Konstruktive Kritik
+        - 📝 **Zusammenfassung**: Kompakte Übersicht
+        - 🎯 **Handlungsempfehlung**: Konkrete Schritte
+        - 🔮 **Beziehungsanalyst**: Soziale Dynamiken
+        
+        **Beispiel-Fragen:**
+        - "Was habe ich über Sandra gesprochen?"
+        - "Welche Python-Projekte habe ich angefangen?"
+        - "Wie hat sich meine Stimmung entwickelt?"
+        - "Welche Themen beschäftigen mich am meisten?"
+        """)
+        
+        if st.button("Got it! ✓"):
+            st.session_state.first_run = False
+            st.rerun()
+
+# Chat History initialisieren
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Chat History anzeigen
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# ============================================================================
 # RAG QUERY FUNKTION
 # ============================================================================
 
-def query_knowledge_base(question, persona, num_docs=5, temperature=0.7):
+def query_knowledge_base(question: str, persona: str, num_docs: int, temp: float) -> str:
     """
     Führt RAG Query aus
+    
+    Args:
+        question: User-Frage
+        persona: Gewählte Perspektive
+        num_docs: Anzahl Dokumente für Kontext
+        temp: LLM Temperature
+    
+    Returns:
+        LLM Response als String
     """
-    if not collection:
-        return "❌ Keine Datenbank geladen! Bitte lade chroma_db.zip hoch."
-    
-    if not question:
-        return "❓ Bitte stelle eine Frage."
-    
     try:
-        # 1. Query Embedding erstellen
-        query_embedding = embed_model.encode(question).tolist()
+        # Komponenten laden
+        embed_model = load_embedding_model()
+        qdrant = get_qdrant_client()
+        llm = get_llm(temperature=temp)
         
-        # 2. Ähnliche Dokumente suchen
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=num_docs,
-            include=["documents", "metadatas", "distances"]
-        )
+        # Query-Embedding erstellen
+        with st.spinner("🔍 Durchsuche Knowledge Base..."):
+            query_embedding = embed_model.encode(question).tolist()
         
-        if not results['documents'][0]:
-            return "❌ Keine relevanten Dokumente gefunden."
+        # Ähnliche Dokumente aus Qdrant holen
+        with st.spinner("📚 Sammle relevante Conversations..."):
+            results = qdrant.search(
+                collection_name="chatgpt_conversations",
+                query_vector=query_embedding,
+                limit=num_docs
+            )
         
-        # 3. Kontext zusammenbauen
+        if not results:
+            return "❌ Keine relevanten Conversations gefunden. Versuch's mit einer anderen Frage!"
+        
+        # Kontext zusammenbauen
         context_parts = []
-        for i, (doc, dist) in enumerate(zip(results['documents'][0], results['distances'][0]), 1):
-            similarity = (1 - dist) * 100
-            text = doc[:400]  # Limit für bessere Performance
-            context_parts.append(f"[Doc {i} | {similarity:.0f}% relevant]\n{text}")
+        for i, r in enumerate(results, 1):
+            text = r.payload.get('text', '')[:500]  # Limit für Kontext
+            score = r.score
+            context_parts.append(f"[Dokument {i} | Relevanz: {score:.2%}]\n{text}")
         
         context = "\n\n---\n\n".join(context_parts)
         
-        # 4. Prompt mit Persona
-        prompt = PERSONAS[persona].format(context=context, question=question)
+        # Prompt mit gewählter Persona erstellen
+        prompt_template = ChatPromptTemplate.from_template(PERSONAS[persona])
+        prompt = prompt_template.format(context=context, question=question)
         
-        # 5. LLM Query (HuggingFace Inference API - KOSTENLOS!)
-        response = hf_client.text_generation(
-            prompt,
-            model="mistralai/Mistral-7B-Instruct-v0.2",
-            max_new_tokens=500,
-            temperature=temperature,
-            do_sample=True
-        )
-        
-        return response
-        
+        # LLM Response generieren
+        with st.spinner(f"💭 {persona} analysiert..."):
+            response = llm.invoke(prompt)
+            return response.content
+            
     except Exception as e:
-        return f"❌ Fehler: {str(e)}"
+        return f"❌ Fehler: {str(e)}\n\nBitte check die Secrets in Streamlit Cloud!"
 
 # ============================================================================
-# GRADIO INTERFACE
+# CHAT INPUT
 # ============================================================================
 
-# Custom CSS für Mobile
-custom_css = """
-    .gradio-container {
-        max-width: 100% !important;
-        padding: 10px !important;
-    }
-    #component-0 {
-        height: auto !important;
-    }
-"""
+if question := st.chat_input("Stelle eine Frage an deine Knowledge Base..."):
+    # User Message anzeigen
+    st.session_state.messages.append({
+        "role": "user",
+        "content": question
+    })
+    
+    with st.chat_message("user"):
+        st.markdown(question)
+    
+    # Assistant Response generieren
+    with st.chat_message("assistant"):
+        response = query_knowledge_base(
+            question=question,
+            persona=selected_persona,
+            num_docs=num_results,
+            temp=temperature
+        )
+        st.markdown(response)
+    
+    # Response zu History hinzufügen
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": response
+    })
 
-# Interface erstellen
-with gr.Blocks(css=custom_css, title="Ben's Knowledge Base") as demo:
-    
-    gr.Markdown("""
-    # 🧠 Ben's Knowledge Base
-    
-    Durchsuche deine 2.927 ChatGPT Conversations mit verschiedenen Perspektiven!
-    
-    **✨ Features:**
-    - 🔍 6 verschiedene Analyse-Modi
-    - 📱 Mobile-optimiert (iPhone/Android)
-    - 🆓 100% kostenlos
-    - 🔒 Läuft in Hugging Face (sicher)
-    """)
-    
-    with gr.Row():
-        with gr.Column(scale=2):
-            question_input = gr.Textbox(
-                label="Deine Frage",
-                placeholder="z.B. 'Was habe ich über Sandra gesprochen?'",
-                lines=2
-            )
-            
-            with gr.Row():
-                persona_dropdown = gr.Dropdown(
-                    choices=list(PERSONAS.keys()),
-                    value="🔍 Analytiker",
-                    label="Query-Modus / Perspektive",
-                    info="Wähle verschiedene 'Prämissen' für die Analyse"
-                )
-        
-        with gr.Column(scale=1):
-            num_docs_slider = gr.Slider(
-                minimum=3,
-                maximum=10,
-                value=5,
-                step=1,
-                label="Dokumente für Kontext",
-                info="Mehr = umfassender"
-            )
-            
-            temp_slider = gr.Slider(
-                minimum=0.1,
-                maximum=1.0,
-                value=0.7,
-                step=0.1,
-                label="Kreativität",
-                info="Höher = kreativer"
-            )
-    
-    submit_btn = gr.Button("🔍 Suchen", variant="primary", size="lg")
-    
-    output_text = gr.Textbox(
-        label="Antwort",
-        lines=15,
-        show_copy_button=True
-    )
-    
-    # Beispiele
-    gr.Examples(
-        examples=[
-            ["Was habe ich über Python gesprochen?", "🔍 Analytiker"],
-            ["Welche Beziehungsthemen beschäftigen mich?", "🔮 Beziehungen"],
-            ["Gib mir einen Überblick über meine Projekte", "📝 Zusammenfassung"],
-            ["Was sollte ich als nächstes tun?", "🎯 Handlung"],
-        ],
-        inputs=[question_input, persona_dropdown],
-    )
-    
-    # Event Handler
-    submit_btn.click(
-        fn=query_knowledge_base,
-        inputs=[question_input, persona_dropdown, num_docs_slider, temp_slider],
-        outputs=output_text
-    )
-    
-    question_input.submit(
-        fn=query_knowledge_base,
-        inputs=[question_input, persona_dropdown, num_docs_slider, temp_slider],
-        outputs=output_text
-    )
-    
-    # Info Footer
-    gr.Markdown("""
-    ---
-    
-    **📱 Auf iPhone nutzen:**
-    1. Öffne diesen Link in Safari
-    2. Tippe "Share" → "Zum Home-Bildschirm"
-    3. Fertig! Icon wie eine App ✨
-    
-    **🔧 Powered by:**
-    - HuggingFace Inference API (kostenlos)
-    - ChromaDB (deine Daten)
-    - Mistral 7B (LLM)
-    """)
+# ============================================================================
+# FOOTER
+# ============================================================================
 
-# App starten
-if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False
-    )
+st.divider()
+st.caption("🔒 Privat & Sicher | 🚀 Powered by Qdrant + Groq")
