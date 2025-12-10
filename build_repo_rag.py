@@ -137,8 +137,17 @@ def main() -> None:
     args = parser.parse_args()
 
     extensions = {ext.lower() if ext.startswith(".") else f".{ext.lower()}" for ext in args.extensions}
-    exclude_dirs = set(args.exclude_dirs)
     repo_root = Path.cwd()
+    persist_dir = (repo_root / args.persist_dir).resolve() if not args.persist_dir.is_absolute() else args.persist_dir.resolve()
+
+    exclude_dirs = set(args.exclude_dirs)
+    try:
+        persist_relative = persist_dir.relative_to(repo_root)
+    except ValueError:
+        persist_relative = None
+
+    if persist_relative:
+        exclude_dirs.add(persist_relative.parts[0])
     documents: List[Tuple[Path, int, str]] = []
 
     for path, raw_text in iter_text_files(repo_root, extensions, exclude_dirs, args.max_file_mb):
@@ -151,8 +160,8 @@ def main() -> None:
     if not documents:
         return
 
-    build_chroma_index(documents, args.persist_dir, repo_root)
-    print(f"✅ Chroma index created at: {args.persist_dir}")
+    build_chroma_index(documents, persist_dir, repo_root)
+    print(f"✅ Chroma index created at: {persist_dir}")
 
 
 if __name__ == "__main__":
