@@ -13,15 +13,18 @@ app = Flask(__name__)
 CORS(app)
 
 # ChromaDB laden (von Google Drive gemountet)
-CHROMA_PATH = "/content/drive/MyDrive/rag_system/chroma_db"  # Passe an!
+CHROMA_PATH = "./chroma_db"  # Passe an!
 client = None
 collection = None
+
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 def init_rag():
     global client, collection
     if client is None:
         client = chromadb.PersistentClient(path=CHROMA_PATH)
-        collection = client.get_collection("conversations")
+        embedder = SentenceTransformerEmbeddingFunction(model_name="all-mpnet-base-v2")
+        collection = client.get_collection("chatgpt_conversations", embedding_function=embedder)
     return collection
 
 @app.route('/search', methods=['POST'])
@@ -46,9 +49,9 @@ def search():
             results['distances'][0]
         ):
             formatted.append({
-                'title': meta['title'],
+                'title': meta.get('title', meta.get('source_file', 'Unknown')),
                 'relevance': f"{(1-dist)*100:.1f}%",
-                'messages': meta['message_count'],
+                'messages': meta.get('message_count', 1),
                 'content': doc[:2000]  # Erste 2000 Zeichen
             })
         
@@ -71,7 +74,7 @@ def stats():
     try:
         coll = init_rag()
         return jsonify({
-            'total_conversations': coll.count(),
+            'total_chatgpt_conversations': coll.count(),
             'status': 'online'
         })
     except Exception as e:
