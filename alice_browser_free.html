@@ -728,10 +728,22 @@ Alice répond:`;
             
             const avatar = type === 'user' ? '👤' : '👩‍🦰';
             
+            const escapeHTML = str => str.replace(/[&<>'"]/g,
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag])
+            );
+
+            const safeContent = escapeHTML(content);
+
             messageDiv.innerHTML = `
                 <div class="message-avatar">${avatar}</div>
                 <div>
-                    <div class="message-content">${content}</div>
+                    <div class="message-content">${safeContent}</div>
                     <div class="message-time">${new Date().toLocaleTimeString('de-DE')}</div>
                 </div>
             `;
